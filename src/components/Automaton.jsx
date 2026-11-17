@@ -33,10 +33,26 @@ function groupEdges(transitions) {
   return [...map.values()];
 }
 
+/* Flèche = trait gris plein (avec pointe) + blip lumineux par-dessus */
+function Edge({ d, marker, delay = 0 }) {
+  return (
+    <>
+      <path d={d} className="edge-track" markerEnd={marker} />
+      <path
+        d={d}
+        className="edge"
+        pathLength={100}
+        style={{ animationDelay: `${delay}s` }}
+      />
+    </>
+  );
+}
+
 export default function Automaton({ auto, prefix, title }) {
   const { pos, w, h } = layout(auto);
   const edges = groupEdges(auto.transitions);
   const id = `arrow-${prefix}`;
+  const marker = `url(#${id})`;
 
   return (
     <div className="graph" role="img" aria-label={title}>
@@ -47,17 +63,21 @@ export default function Automaton({ auto, prefix, title }) {
           </marker>
         </defs>
 
-        {edges.map((e) => {
+        {edges.map((e, i) => {
           const a = pos.get(e.from), b = pos.get(e.to);
           const label = e.labels.join(', ');
+          const delay = i * 0.4;
+
           if (e.from === e.to) {
+            const d = `M${a.x - 11},${a.y - 17} C${a.x - 32},${a.y - 62} ${a.x + 32},${a.y - 62} ${a.x + 11},${a.y - 17}`;
             return (
               <g key={`${e.from}-${e.to}`}>
-                <path d={`M${a.x - 11},${a.y - 17} C${a.x - 32},${a.y - 62} ${a.x + 32},${a.y - 62} ${a.x + 11},${a.y - 17}`} className="edge" markerEnd={`url(#${id})`} />
+                <Edge d={d} marker={marker} delay={delay} />
                 <text x={a.x} y={a.y - 56} className="elabel" textAnchor="middle">{label}</text>
               </g>
             );
           }
+
           const dx = b.x - a.x, dy = b.y - a.y, L = Math.hypot(dx, dy);
           const back = b.x <= a.x;
           const off = back ? 46 : 0;
@@ -65,13 +85,18 @@ export default function Automaton({ auto, prefix, title }) {
           const bend = off || (hasReverse ? 26 : 0);
           const cx = (a.x + b.x) / 2 + (-dy / L) * bend * 2;
           const cy = (a.y + b.y) / 2 + (dx / L) * bend * 2;
-          const trim = (p, q) => { const l = Math.hypot(q.x - p.x, q.y - p.y) || 1; return { x: p.x + ((q.x - p.x) / l) * R, y: p.y + ((q.y - p.y) / l) * R }; };
+          const trim = (p, q) => {
+            const l = Math.hypot(q.x - p.x, q.y - p.y) || 1;
+            return { x: p.x + ((q.x - p.x) / l) * R, y: p.y + ((q.y - p.y) / l) * R };
+          };
           const p0 = trim(a, { x: cx, y: cy }), p1 = trim(b, { x: cx, y: cy });
           const mx = 0.25 * p0.x + 0.5 * cx + 0.25 * p1.x, my = 0.25 * p0.y + 0.5 * cy + 0.25 * p1.y;
           const nx = bend ? (-dy / L) * Math.sign(bend) * 9 : 0, ny = bend ? (dx / L) * Math.sign(bend) * 9 : -9;
+          const d = `M${p0.x},${p0.y} Q${cx},${cy} ${p1.x},${p1.y}`;
+
           return (
             <g key={`${e.from}-${e.to}`}>
-              <path d={`M${p0.x},${p0.y} Q${cx},${cy} ${p1.x},${p1.y}`} className="edge" markerEnd={`url(#${id})`} />
+              <Edge d={d} marker={marker} delay={delay} />
               <text x={mx + nx} y={my + ny + 4} className="elabel" textAnchor="middle">{label}</text>
             </g>
           );
@@ -80,9 +105,10 @@ export default function Automaton({ auto, prefix, title }) {
         {auto.states.map((q) => {
           const p = pos.get(q);
           const final = auto.finals.includes(q);
+          const cls = q === auto.start ? 'node start' : final ? 'node final' : 'node';
           return (
             <g key={q}>
-              <circle cx={p.x} cy={p.y} r={R} className={q === auto.start ? 'node start' : 'node'} />
+              <circle cx={p.x} cy={p.y} r={R} className={cls} />
               {final && <circle cx={p.x} cy={p.y} r={R - 5} className="node-inner" />}
               <text x={p.x} y={p.y + 5} textAnchor="middle" className="nlabel">{prefix}{q}</text>
             </g>
@@ -91,9 +117,10 @@ export default function Automaton({ auto, prefix, title }) {
 
         {(() => {
           const p = pos.get(auto.start);
-          return <path d={`M${p.x - R - 30},${p.y} L${p.x - R - 1},${p.y}`} className="edge" markerEnd={`url(#${id})`} />;
+          return <Edge d={`M${p.x - R - 30},${p.y} L${p.x - R - 1},${p.y}`} marker={marker} />;
         })()}
       </svg>
+      <p className="caption">{title}</p>
     </div>
   );
 }

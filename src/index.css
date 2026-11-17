@@ -1,82 +1,299 @@
 :root {
-  --bg: #f6f7f4;
-  --ink: #1d2733;
-  --muted: #5b6672;
-  --line: #c9d2d9;
+  --bg: #f1f5f2;
+  --ink: #0f1a14;
+  --muted: #3f5048;
+  --line: #b9c6be;
   --panel: #ffffff;
-  --accent: #1f5f8b;
-  --ok: #1d6b45;
-  --ok-bg: #e4f2ea;
-  --bad: #9a2b2b;
-  --bad-bg: #f8e6e4;
-  color-scheme: light dark;
+  --accent: #1d4ed8;
+  --accent-soft: rgba(29, 78, 216, 0.12);
+  --ok: #14572f;
+  --ok-bg: #d9f0e2;
+  --bad: #8a1f1f;
+  --bad-bg: #f8dedb;
+  --dot: rgba(40, 90, 60, 0.3);
+  --dot-major: rgba(40, 90, 60, 0.5);
+  --shadow: 0 1px 2px rgba(20, 40, 30, 0.08), 0 8px 24px rgba(20, 40, 30, 0.08);
+  --glow: 0 0 0 3px var(--accent-soft);
+
+  /* Cadre de l'automate (mode lumière : textes très contrastés) */
+  --g-bg: #e3ebf5;
+  --g-border: #9fb0c6;
+  --g-text: #0b1f45;
+  --g-caption: #1f3329;
+  --g-edge-label: #063a45;
+  --g-state: #3f4f66;
+  --g-state-fill: #cfdcf0;
+  --g-start: #b01e3c;
+  --g-start-fill: #f9cfd8;
+  --g-final: #3f4f66;
+  --g-final-fill: #c4d4ee;
+  --g-inner: #1f4a96;
+
+  /* Flèche : trait gris plein + blip lumineux */
+  --track: #6b7a90;
+  --flow: #1e2c46;
+  --flow-glow: #5b7bb5;
+
+  color-scheme: light;
 }
+
+/* Mode sombre automatique (système), sauf si le clair est forcé */
 @media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #14191f;
-    --ink: #e6ebf0;
-    --muted: #98a4b0;
-    --line: #34414d;
-    --panel: #1b222a;
+  :root:not([data-theme="light"]) {
+    --bg: #111a15;
+    --ink: #e8f0ea;
+    --muted: #9fb0a6;
+    --line: #26332c;
+    --panel: #151f19;
     --accent: #6fb3e0;
+    --accent-soft: rgba(111, 179, 224, 0.15);
     --ok: #7fd1a1;
     --ok-bg: #173126;
     --bad: #f0a0a0;
     --bad-bg: #351d1d;
+    --dot: rgba(160, 205, 175, 0.16);
+    --dot-major: rgba(160, 205, 175, 0.34);
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.35);
+
+    --g-bg: #0b121d;
+    --g-border: #242e38;
+    --g-text: #bcd0ee;
+    --g-caption: #9ab5a5;
+    --g-edge-label: #a6dcd7;
+    --g-state: #9aa8bd;
+    --g-state-fill: #151e30;
+    --g-start: #ee6a80;
+    --g-start-fill: #251a27;
+    --g-final: #9aa8bd;
+    --g-final-fill: #16213a;
+    --g-inner: #31507f;
+
+    --track: #7d8aa0;
+    --flow: #ffffff;
+    --flow-glow: #9fd0ff;
+
+    color-scheme: dark;
   }
 }
+
+/* Mode sombre forcé par le bouton */
+:root[data-theme="dark"] {
+  --bg: #111a15;
+  --ink: #e8f0ea;
+  --muted: #9fb0a6;
+  --line: #26332c;
+  --panel: #151f19;
+  --accent: #6fb3e0;
+  --accent-soft: rgba(111, 179, 224, 0.15);
+  --ok: #7fd1a1;
+  --ok-bg: #173126;
+  --bad: #f0a0a0;
+  --bad-bg: #351d1d;
+  --dot: rgba(160, 205, 175, 0.16);
+  --dot-major: rgba(160, 205, 175, 0.34);
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.35);
+
+  --g-bg: #0b121d;
+  --g-border: #242e38;
+  --g-text: #bcd0ee;
+  --g-caption: #9ab5a5;
+  --g-edge-label: #a6dcd7;
+  --g-state: #9aa8bd;
+  --g-state-fill: #151e30;
+  --g-start: #ee6a80;
+  --g-start-fill: #251a27;
+  --g-final: #9aa8bd;
+  --g-final-fill: #16213a;
+  --g-inner: #31507f;
+
+  --track: #7d8aa0;
+  --flow: #ffffff;
+  --flow-glow: #9fd0ff;
+
+  color-scheme: dark;
+}
+
 * {
   box-sizing: border-box;
 }
+
+/* ---------- Fond de page : quadrillage en points ---------- */
 body {
   margin: 0;
-  background: var(--bg);
+  min-height: 100vh;
   color: var(--ink);
-  font:
-    16px/1.55 "Source Serif 4",
-    Georgia,
-    serif;
+  background-color: var(--bg);
+  background-image:
+    radial-gradient(circle, var(--dot-major) 1.6px, transparent 2px),
+    radial-gradient(circle, var(--dot) 1px, transparent 1.4px);
+  background-size: 120px 120px, 24px 24px;
+  background-attachment: fixed;
+  font: 16px/1.55 "Source Serif 4", Georgia, serif;
+  transition: background-color 0.3s, color 0.3s;
 }
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse at center, transparent 55%, var(--bg) 100%);
+  z-index: -1;
+}
+
 .mono,
 code,
 pre {
   font-family: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
 }
+code {
+  background: var(--accent-soft);
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 0.9em;
+  font-weight: 600;
+}
+
 .page {
   max-width: 880px;
   margin: 0 auto;
-  padding: 32px 18px 64px;
+  padding: 40px 18px 72px;
+  animation: fadeUp 0.5s ease both;
 }
+
 h1 {
-  font-size: 1.7rem;
+  font-size: 1.8rem;
   margin: 0 0 4px;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.015em;
 }
 h2 {
   font-size: 1.15rem;
   margin: 0 0 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+h2::before {
+  content: "";
+  width: 4px;
+  height: 1em;
+  background: var(--accent);
+  border-radius: 2px;
 }
 .lead,
 .hint {
   color: var(--muted);
   margin: 4px 0 10px;
-  font-size: 0.92rem;
+  font-size: 0.95rem;
 }
+/* ---------- Étapes de présentation ---------- */
+.steps {
+  list-style: none;
+  counter-reset: step;
+  padding: 0;
+  margin: 14px 0 0;
+  display: grid;
+  gap: 10px;
+}
+.steps li {
+  counter-increment: step;
+  display: grid;
+  grid-template-columns: 32px 1fr;
+  column-gap: 12px;
+  align-items: start;
+  padding: 10px 14px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  color: var(--ink);
+  transition: border-color 0.2s, transform 0.2s;
+}
+.steps li:hover {
+  border-color: var(--accent);
+  transform: translateX(3px);
+}
+.steps li::before {
+  content: counter(step);
+  grid-row: span 2;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  font: 800 0.9rem "JetBrains Mono", ui-monospace, monospace;
+}
+.steps li strong {
+  font-size: 0.98rem;
+}
+.steps li span {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+.lead strong {
+  color: var(--ink);
+}
+
+/* ---------- Bouton thème ---------- */
+.theme-toggle {
+  position: fixed;
+  top: 14px;
+  right: 14px;
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  font-size: 1.1rem;
+  background: var(--panel);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: var(--shadow);
+  transition: transform 0.2s, border-color 0.2s, background 0.2s;
+  z-index: 10;
+}
+.theme-toggle:hover {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  transform: rotate(20deg) scale(1.05);
+}
+.theme-toggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ---------- Sections (fond uni : pas de grille dedans) ---------- */
 section {
   background: var(--panel);
   border: 1px solid var(--line);
-  border-radius: 6px;
-  padding: 18px;
-  margin-top: 18px;
+  border-radius: 14px;
+  padding: 20px;
+  margin-top: 20px;
+  box-shadow: var(--shadow);
+  transition: border-color 0.2s;
+  animation: fadeUp 0.5s ease both;
 }
+section:hover {
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--line));
+}
+
 .field {
   width: 100%;
-  padding: 11px 12px;
+  padding: 12px 14px;
   font-size: 1.05rem;
+  font-family: "JetBrains Mono", ui-monospace, monospace;
   color: var(--ink);
   background: var(--bg);
   border: 1px solid var(--line);
-  border-radius: 4px;
+  border-radius: 8px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.field:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: var(--glow);
 }
 .field:focus-visible,
 .chip:focus-visible {
@@ -86,29 +303,42 @@ section {
 .field:disabled {
   opacity: 0.55;
 }
+
 .chips {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 8px;
-  margin: 10px 0 0;
+  margin: 12px 0 0;
 }
 .chip {
-  background: none;
+  background: var(--panel);
   border: 1px solid var(--line);
-  border-radius: 4px;
+  border-radius: 6px;
   color: var(--ink);
-  padding: 4px 10px;
+  padding: 5px 12px;
   cursor: pointer;
   font-size: 0.85rem;
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  transition: transform 0.15s, border-color 0.15s, background 0.15s, box-shadow 0.15s;
 }
 .chip:hover {
   border-color: var(--accent);
+  background: var(--accent-soft);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px var(--accent-soft);
 }
+.chip:active {
+  transform: translateY(0);
+}
+
 .msg {
-  margin: 12px 0 0;
-  padding: 10px 12px;
-  border-radius: 4px;
+  margin: 14px 0 0;
+  padding: 10px 14px;
+  border-radius: 8px;
   border-left: 4px solid;
+  font-weight: 600;
+  animation: slideIn 0.25s ease both;
 }
 .msg p {
   margin: 0;
@@ -123,6 +353,7 @@ section {
   border-color: var(--bad);
   color: var(--bad);
 }
+
 .pointer {
   margin: 8px 0 0;
   font-size: 0.95rem;
@@ -130,62 +361,163 @@ section {
 }
 .count {
   color: var(--muted);
-  font-weight: 400;
+  font-weight: 600;
   font-size: 0.85rem;
   margin-left: 6px;
 }
+
+/* ---------- Cadre de l'automate (fond uni, sans points) ---------- */
 .graph {
+  position: relative;
   overflow-x: auto;
-  border: 1px dashed var(--line);
-  border-radius: 4px;
-  background: var(--bg);
+  padding: 28px 20px 20px;
+  background: var(--g-bg);
+  border: 1px solid var(--g-border);
+  border-radius: 14px;
 }
 .graph svg {
   display: block;
   margin: 0 auto;
 }
-.edge {
+
+/* Légende type « FIG 5.1 : ... » */
+.caption {
+  margin: 18px 0 0;
+  font: 700 11px/1.6 "JetBrains Mono", ui-monospace, monospace;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--g-caption);
+}
+
+/* ---------- Flèches : trait plein + blip lumineux ---------- */
+
+/* 1) Trait gris plein, fixe */
+.edge-track {
   fill: none;
-  stroke: var(--muted);
+  stroke: var(--track);
   stroke-width: 1.5;
 }
 .arrowhead {
-  fill: var(--muted);
+  fill: var(--track);
 }
+
+/* 2) Petit trait lumineux qui voyage (le <path> a pathLength="100") */
+.edge {
+  fill: none;
+  stroke: var(--flow);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-dasharray: 12 300;
+  stroke-dashoffset: 12;
+  opacity: 0;
+  pointer-events: none;
+  filter:
+    drop-shadow(0 0 3px var(--flow))
+    drop-shadow(0 0 7px var(--flow-glow));
+  animation: dfa-blip 3.5s linear infinite;
+}
+
+@keyframes dfa-blip {
+  0%   { stroke-dashoffset: 12;   opacity: 0; }
+  4%   { opacity: 1; }
+  30%  { stroke-dashoffset: -100; opacity: 1; }
+  34%  { stroke-dashoffset: -100; opacity: 0; }
+  100% { stroke-dashoffset: -100; opacity: 0; }
+}
+
+/* ---------- États ---------- */
 .node {
-  fill: var(--panel);
-  stroke: var(--ink);
-  stroke-width: 1.6;
+  fill: var(--g-state-fill);
+  stroke: var(--g-state);
+  stroke-width: 2;
+  transition: fill 0.2s, stroke 0.2s, filter 0.2s;
 }
 .node.start {
-  stroke: var(--accent);
+  stroke: var(--g-start);
+  fill: var(--g-start-fill);
   stroke-width: 2.4;
 }
+.node.final {
+  stroke: var(--g-final);
+  fill: var(--g-final-fill);
+}
+.node:hover,
+.node.active {
+  filter: drop-shadow(0 0 8px var(--g-text));
+}
+.node.start:hover,
+.node.start.active {
+  filter: drop-shadow(0 0 8px var(--g-start));
+}
+
+/* Cercle intérieur de l'état final : pulse à l'arrivée du blip */
 .node-inner {
   fill: none;
-  stroke: var(--ink);
-  stroke-width: 1.6;
+  stroke: var(--g-inner);
+  stroke-width: 2;
+  animation: dfa-accept 3.5s ease-in-out 1.1s infinite;
 }
+
+@keyframes dfa-accept {
+  0%, 100% { stroke-opacity: 0.55; filter: none; }
+  10%      { stroke-opacity: 1;    filter: drop-shadow(0 0 5px var(--flow-glow)); }
+  25%      { stroke-opacity: 0.55; filter: none; }
+}
+
+/* ---------- Textes de l'automate ---------- */
 .nlabel {
-  fill: var(--ink);
-  font:
-    600 12px "JetBrains Mono",
-    ui-monospace,
-    monospace;
+  fill: var(--g-text);
+  font: 800 13px "JetBrains Mono", ui-monospace, monospace;
+  pointer-events: none;
 }
 .elabel {
-  fill: var(--accent);
-  font:
-    600 13px "JetBrains Mono",
-    ui-monospace,
-    monospace;
+  fill: var(--g-edge-label);
+  font: 800 14px "JetBrains Mono", ui-monospace, monospace;
+  paint-order: stroke;
+  stroke: var(--g-bg);
+  stroke-width: 4px;
+  stroke-linejoin: round;
 }
+
 .subsets {
   list-style: none;
   padding: 0;
   margin: 12px 0 0;
   font-size: 0.85rem;
+  font-weight: 600;
+  font-family: "JetBrains Mono", ui-monospace, monospace;
   color: var(--muted);
   display: grid;
-  gap: 2px;
+  gap: 4px;
+}
+.subsets li {
+  padding: 2px 8px;
+  border-radius: 4px;
+  transition: background 0.15s, color 0.15s;
+}
+.subsets li:hover {
+  background: var(--accent-soft);
+  color: var(--ink);
+}
+
+/* ---------- Animations ---------- */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(-8px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
+  .edge {
+    display: none; /* il ne reste que le trait plein */
+  }
+  .node-inner {
+    animation: none !important;
+  }
 }
