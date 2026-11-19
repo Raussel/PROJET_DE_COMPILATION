@@ -1,75 +1,172 @@
-// Grammaire :
-//   union  := concat ('|' concat)*
-//   concat := repeat+
-//   repeat := atome ('*' | '+' | '?')*
-//   atome  := symbole | 'ε' | '(' union ')'
-export class RegexError extends Error {
-  constructor(message, position) {
-    super(message);
-    this.position = position; // index (base 0) du caractère fautif
+// Analyseur syntaxique d'expressions régulières.
+// Il transforme une expression en arbre (AST) avant toute construction d'automate.
+// Opérateurs pris en charge : | (union), juxtaposition (concaténation), * (étoile), ε.
+
+const LONGUEUR_MAX = 256;
+const PROFONDEUR_MAX = 64;
+const EST_SYMBOLE = /^[a-zA-Z0-9_.+-]$/;
+function erreur(message, position) {
+  throw new Error(`${message} (position ${position + 1}).`);
+}
+
+function lireCaracteres(expression, alphabet)  {
+  if (typeof expression !== 'string' || expression.trim() === '') {
+    throw new Error('Expression vide : saisissez une expression régulière.');
   }
+
+  if (expression.length > LONGUEUR_MAX) {
+    throw new Error(`Expression trop longue : ${LONGUEUR_MAX} caractères maximum.`);
+  }
+
+  const caracteres = [];
+
+  for (let i = 0; i < expression.length; i++) {
+    const caractere = expression[i];
+
+    // Les espaces ne participent pas à l'expression.
+    if (/\s/.test(caractere)) continue;
+    if (EST_SYMBOLE.test(caractere) && alphabet && !alphabet.includes(caractere)) {
+      erreur(`Le symbole « ${caractere} » n’appartient pas à l’alphabet {${alphabet.join(', ')}}`, i);
+    }
+
+    if ('|*()'.includes(caractere) || EST_SYMBOLE.test(caractere)) {
+      caracteres.push({ valeur: caractere, position: i });
+    } else if (caractere === 'ε' || caractere === '€') {
+      caracteres.push({ valeur: 'ε', position: i });
+    } else {
+      erreur(`Caractère non autorisé : « ${caractere} »`, i);
+    }
+  }
+
+  if (caracteres.length === 0) {
+    throw new Error('Expression vide : saisissez une expression régulière.');
+  }
+
+  return caracteres;
 }
 
-const SYMBOL = /^[A-Za-z0-9]$/;
+export function parseRegex(expression) {
+  const caracteres = lireCaracteres(expression);
+  let position = 0;
+  let profondeur = 0;
 
-export function parse(src) {
-  if (src.length === 0) throw new RegexError("L'expression est vide : saisis au moins un symbole.", 0);
-  let i = 0;
+  function regarder() {
+    return caracteres[position];
+  }
 
-  const union = () => {
-    let left = concat();
-    while (src[i] === '|') {
-      i++;
-      left = { type: 'union', left, right: concat() };
+  function consommer() {
+    return caracteres[position++];
+  }
+
+  function valeurActuelle() {
+    return regarder()?.valeur;
+  }
+
+  function positionActuelle() {
+    return regarder()?.position ?? expression.length;
+  }
+
+  function commenceUnAtome(valeur) {
+    return valeur === 'ε' || valeur === '(' || EST_SYMBOLE.test(valeur || '');
+  }
+
+  function lireExpression() {
+    let gauche = lireConcatenation();
+
+    while (valeurActuelle() === '|') {
+      consommer(); // consomme |
+
+      if (!commenceUnAtome(valeurActuelle())) {
+        erreur('Il manque une expression après l’opérateur « | »', positionActuelle());
+      }
+
+      const droite = lireConcatenation();
+      gauche = { type: 'union', left: gauche, right: droite };
     }
-    return left;
-  };
 
-  const concat = () => {
-    const parts = [];
-    while (i < src.length && src[i] !== '|' && src[i] !== ')') parts.push(repeat());
-    if (parts.length === 0) {
-      const where = i < src.length ? `devant « ${src[i]} »` : "en fin d'expression";
-      throw new RegexError(`Opérande manquant à la position ${i + 1} (${where}) : un symbole ou une sous-expression est attendu.`, Math.min(i, src.length - 1));
+    return gauche;
+  }
+
+  function lireConcatenation() {
+    if (!commenceUnAtome(valeurActuelle())) {
+      erreur('Un symbole ou une parenthèse ouvrante était attendu', positionActuelle());
     }
-    return parts.reduce((left, right) => ({ type: 'concat', left, right }));
-  };
 
-  const repeat = () => {
-    let node = atom();
-    while (i < src.length && '*+?'.includes(src[i])) {
-      node = { type: { '*': 'star', '+': 'plus', '?': 'opt' }[src[i]], child: node };
-      i++;
+    const elements = [lireFacteur()];
+
+    while (commenceUnAtome(valeurActuelle())) {
+      elements.push(lireFacteur());
     }
-    return node;
-  };
 
-  const atom = () => {
-    const c = src[i];
+    return elements.length === 1
+      ? elements[0]
+      : { type: 'concat', parts: elements };
+  }
+
+  function lireFacteur() {
+    let element = lireAtome();
+
+    if (valeurActuelle() === '*') {
+      consommer();
+      element = { type: 'star', child: element };
+
+      // Une deuxième étoile consécutive est redondante et souvent accidentelle.
+      if (valeurActuelle() === '*') {
+        erreur('Opérateur « * » répété : un seul suffit après un élément', positionActuelle());
+      }
+    }
+
+    return element;
+  }
+
+  function lireAtome() {
+    const caractere = consommer();
+    if (!caractere) {
+      erreur('Expression incomplète : un élément était attendu', expression.length);
+    }
+
+    const c = caractere.valeur;
+
+    if (c === 'ε') return { type: 'epsilon' };
+    if (EST_SYMBOLE.test(c)) return { type: 'symbol', value: c };
+
     if (c === '(') {
-      const start = i++;
-      if (src[i] === ')') throw new RegexError(`Parenthèses vides à la position ${start + 1} : il manque une expression entre « ( » et « ) ».`, start);
-      const node = union();
-      if (src[i] !== ')') throw new RegexError(`La parenthèse ouvrante de la position ${start + 1} n'est jamais refermée.`, start);
-      i++;
-      return node;
+      profondeur++;
+      if (profondeur > PROFONDEUR_MAX) {
+        erreur(`Imbrication trop profonde : ${PROFONDEUR_MAX} niveaux maximum`, caractere.position);
+      }
+
+      if (valeurActuelle() === ')') {
+        erreur('Les parenthèses ne peuvent pas être vides', positionActuelle());
+      }
+
+      const expressionInterne = lireExpression();
+      profondeur--;
+
+      if (valeurActuelle() !== ')') {
+        erreur('Parenthèse fermante « ) » manquante', expression.length);
+      }
+
+      consommer();
+      return expressionInterne;
     }
-    if ('*+?'.includes(c)) throw new RegexError(`L'opérateur « ${c} » à la position ${i + 1} n'a rien à répéter : il doit suivre un symbole ou une parenthèse fermante.`, i);
-    if (c === 'ε') { i++; return { type: 'eps' }; }
-    if (SYMBOL.test(c)) { i++; return { type: 'sym', value: c }; }
-    const label = c === ' ' ? 'espace' : `« ${c} »`;
-    throw new RegexError(`Caractère ${label} non autorisé à la position ${i + 1}. Symboles acceptés : lettres, chiffres, ε et les opérateurs | * + ? ( ).`, i);
-  };
 
-  const ast = union();
-  if (i < src.length) throw new RegexError(`La parenthèse fermante de la position ${i + 1} n'a pas de parenthèse ouvrante correspondante.`, i);
-  return ast;
-}
+    if (c === ')') {
+      erreur('Parenthèse fermante sans parenthèse ouvrante correspondante', caractere.position);
+    }
 
-export function alphabetOf(ast, set = new Set()) {
-  if (ast.type === 'sym') set.add(ast.value);
-  if (ast.left) alphabetOf(ast.left, set);
-  if (ast.right) alphabetOf(ast.right, set);
-  if (ast.child) alphabetOf(ast.child, set);
-  return [...set].sort();
+    erreur(`Élément inattendu : « ${c} »`, caractere.position);
+  }
+
+  const arbre = lireExpression();
+
+  if (position < caracteres.length) {
+    const reste = caracteres[position];
+    if (reste.valeur === ')') {
+      erreur('Parenthèse fermante sans parenthèse ouvrante correspondante', reste.position);
+    }
+    erreur(`Symbole inattendu : « ${reste.valeur} »`, reste.position);
+  }
+
+  return arbre;
 }

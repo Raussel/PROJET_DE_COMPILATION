@@ -1,5 +1,17 @@
 const R = 20, DX = 110, DY = 85, PAD = 50;
 
+// Accepte l'AFN (états numériques, `accepts`) comme l'AFD (états nommés, `finals`).
+function normalize(auto, prefix) {
+  const name = (q) => (typeof q === 'number' ? `${prefix}${q}` : q);
+  const ids = typeof auto.states === 'number' ? Array.from({ length: auto.states }, (_, i) => i) : auto.states;
+  return {
+    states: ids.map(name),
+    start: name(auto.start),
+    finals: (auto.finals ?? auto.accepts).map(name),
+    transitions: auto.transitions.map((t) => ({ from: name(t.from), to: name(t.to), label: t.label })),
+  };
+}
+
 function layout(auto) {
   const depth = new Map([[auto.start, 0]]);
   const queue = [auto.start];
@@ -26,9 +38,8 @@ function groupEdges(transitions) {
   for (const t of transitions) {
     const k = `${t.from}>${t.to}`;
     if (!map.has(k)) map.set(k, { from: t.from, to: t.to, labels: [] });
-    const lab = t.symbol ?? 'ε';
     const e = map.get(k);
-    if (!e.labels.includes(lab)) e.labels.push(lab);
+    if (!e.labels.includes(t.label)) e.labels.push(t.label);
   }
   return [...map.values()];
 }
@@ -38,20 +49,16 @@ function Edge({ d, marker, delay = 0 }) {
   return (
     <>
       <path d={d} className="edge-track" markerEnd={marker} />
-      <path
-        d={d}
-        className="edge"
-        pathLength={100}
-        style={{ animationDelay: `${delay}s` }}
-      />
+      <path d={d} className="edge" pathLength={100} style={{ animationDelay: `${delay}s` }} />
     </>
   );
 }
 
-export default function Automaton({ auto, prefix, title }) {
+export default function Automaton({ auto: raw, prefix = 'q', markerId, title }) {
+  const auto = normalize(raw, prefix);
   const { pos, w, h } = layout(auto);
   const edges = groupEdges(auto.transitions);
-  const id = `arrow-${prefix}`;
+  const id = `arrow-${markerId}`;
   const marker = `url(#${id})`;
 
   return (
@@ -110,7 +117,7 @@ export default function Automaton({ auto, prefix, title }) {
             <g key={q}>
               <circle cx={p.x} cy={p.y} r={R} className={cls} />
               {final && <circle cx={p.x} cy={p.y} r={R - 5} className="node-inner" />}
-              <text x={p.x} y={p.y + 5} textAnchor="middle" className="nlabel">{prefix}{q}</text>
+              <text x={p.x} y={p.y + 5} textAnchor="middle" className="nlabel">{q}</text>
             </g>
           );
         })}
